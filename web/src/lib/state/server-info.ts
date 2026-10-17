@@ -1,4 +1,4 @@
 import { writable } from "svelte/store";
-import * as ServerInfo from "$lib/api/server-info";
+import type { CobaltServerInfoCache } from "$lib/api/server-info";
 
-export default writable<ServerInfo.CobaltServerInfoCache | undefined>();
+export default writable<CobaltServerInfoCache | undefined>();
