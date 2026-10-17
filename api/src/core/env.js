@@ -123,6 +123,8 @@ export const loadEnvs = (env = process.env) => {
         ytAllowBetterAudio: env.YOUTUBE_ALLOW_BETTER_AUDIO !== "0",
         ytPlayerIds: env.YOUTUBE_PLAYER_ID?.split(',')?.map(p => p.trim()),
         ytdlpPath: env.YTDLP_PATH,
+        ytdlpCookies: env.YTDLP_COOKIES,
+        ytdlpProxy: env.YTDLP_PROXY,
 
         // "never" | "session" | "always"
         forceLocalProcessing: env.FORCE_LOCAL_PROCESSING ?? "never",
@@ -170,6 +172,19 @@ export const validateEnvs = async (env) => {
         console.error("ENABLE_DEPRECATED_YOUTUBE_HLS is invalid.");
         console.error(`Supported options are are: ${youtubeHlsOptions.join(', ')}\n`);
         throw new Error("Invalid ENABLE_DEPRECATED_YOUTUBE_HLS");
+    }
+
+    if (env.ytdlpProxy) {
+        let protocol;
+        try {
+            protocol = new URL(env.ytdlpProxy).protocol;
+        } catch {}
+
+        // youtube media is also fetched through this proxy by undici,
+        // which only supports http and https proxies
+        if (!["http:", "https:"].includes(protocol)) {
+            throw new Error("YTDLP_PROXY must be an http:// or https:// proxy url");
+        }
     }
 
     if (env.externalProxy && env.freebindCIDR) {

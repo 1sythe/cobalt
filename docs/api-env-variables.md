@@ -70,6 +70,8 @@ this document is not final and will expand over time. feel free to improve it!
 | ENABLE_DEPRECATED_YOUTUBE_HLS    | `key`                    |
 | YOUTUBE_PLAYER_ID                | `abcdefff`               |
 | YTDLP_PATH                       | `/usr/local/bin/yt-dlp`  |
+| YTDLP_COOKIES                    | `/cookies.txt`           |
+| YTDLP_PROXY                      | `http://10.0.0.1:3128`   |
 
 [*view details*](#service-specific)
 
@@ -295,3 +297,17 @@ the value is a string: `never` (default), `key`, or `always`:
 path to a [yt-dlp](https://github.com/yt-dlp/yt-dlp) executable. when defined, cobalt uses yt-dlp to get youtube media links instead of its built-in innertube client. node.js (the one running cobalt) is passed to yt-dlp for solving youtube's javascript challenges. `youtubeHLS` is ignored in this mode.
 
 the value is a path.
+
+### YTDLP_COOKIES
+path to a netscape-format cookies file that is passed to yt-dlp. only used when `YTDLP_PATH` is set.
+
+this is only needed when youtube blocks the instance's ip address with a bot check, which is common on vps and datacenter hosting. instances running on a home connection don't need it. use cookies from a separate account, since youtube may flag accounts used this way. yt-dlp updates the file after each request, so it must be writable by cobalt.
+
+the value is a path.
+
+### YTDLP_PROXY
+http or https proxy that is used for youtube when `YTDLP_PATH` is set. both yt-dlp and cobalt's youtube media downloads go through it, because youtube media links only work from the ip address that requested them. other services are not affected.
+
+like `YTDLP_COOKIES`, this is only needed when youtube blocks the instance's ip address. credentials can be included in the url (`http://user:password@host:port`). they are passed to yt-dlp through its environment, not its command line. socks proxies are not supported.
+
+the value is a URL.

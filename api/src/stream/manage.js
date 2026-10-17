@@ -1,6 +1,7 @@
 import Store from "../store/store.js";
 
 import { nanoid } from "nanoid";
+import { ProxyAgent } from "undici";
 import { randomBytes } from "crypto";
 import { strict as assert } from "assert";
 import { setMaxListeners } from "node:events";
@@ -17,6 +18,25 @@ const freebind = env.freebindCIDR && await import('freebind').catch(() => {});
 const streamCache = new Store('streams');
 
 const internalStreamCache = new Map();
+
+let youtubeProxy;
+
+// links resolved by yt-dlp only work from the ip that requested them,
+// so youtube media has to be fetched through the same proxy as yt-dlp
+const getYoutubeProxyDispatcher = (service) => {
+    if (!env.ytdlpPath || !env.ytdlpProxy || service !== "youtube") {
+        return;
+    }
+
+    if (youtubeProxy?.url !== env.ytdlpProxy) {
+        youtubeProxy = {
+            url: env.ytdlpProxy,
+            dispatcher: new ProxyAgent(env.ytdlpProxy),
+        };
+    }
+
+    return youtubeProxy.dispatcher;
+}
 
 export function createStream(obj) {
     const streamID = nanoid(),
@@ -143,6 +163,8 @@ export function createInternalStream(url, obj = {}, isSubtitles) {
     if (obj.requestIP) {
         dispatcher = freebind?.dispatcherFromIP(obj.requestIP, { strict: false })
     }
+
+    dispatcher ??= getYoutubeProxyDispatcher(obj.service);
 
     const streamID = nanoid();
     let controller = obj.controller;

@@ -103,7 +103,17 @@ const parseError = (stderr = "") => {
 }
 
 const runYtdlp = async (args) => {
+    const childEnv = { ...process.env };
+
+    // passed through the environment instead of --proxy,
+    // so that proxy credentials don't show up in the process list
+    if (env.ytdlpProxy) {
+        childEnv.HTTP_PROXY = childEnv.HTTPS_PROXY = env.ytdlpProxy;
+        delete childEnv.NO_PROXY;
+    }
+
     const { stdout, stderr } = await execFileAsync(env.ytdlpPath, args, {
+        env: childEnv,
         maxBuffer: 64 * 1024 * 1024,
         timeout: 60 * 1000,
         windowsHide: true,
@@ -125,9 +135,13 @@ export async function getYtdlpMedia(o) {
         "--dump-single-json",
         "--format", buildSelector(o, codec),
         "--format-sort", `res:${quality}`,
-        "--",
-        `https://www.youtube.com/watch?v=${o.id}`,
     ];
+
+    if (env.ytdlpCookies) {
+        args.push("--cookies", env.ytdlpCookies);
+    }
+
+    args.push("--", `https://www.youtube.com/watch?v=${o.id}`);
 
     let info, stderr;
     try {
