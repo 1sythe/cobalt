@@ -6,10 +6,9 @@ This repository is a fork of [imputnet/cobalt](https://github.com/imputnet/cobal
 
 | Area | Change | Files |
 |:-----|:-------|:------|
-| api | Optional yt-dlp backend for YouTube | `api/src/processing/helpers/youtube-ytdlp.js`, `api/src/processing/services/youtube.js`, `api/src/core/env.js`, `docs/api-env-variables.md` |
+| api | Optional yt-dlp backend for YouTube, with cookie and proxy options for server hosting | `api/src/processing/helpers/youtube-ytdlp.js`, `api/src/processing/services/youtube.js`, `api/src/stream/manage.js`, `api/src/core/env.js`, `docs/api-env-variables.md` |
 | web | Fix for serving libav.js files from the dev server on Windows | `web/vite.config.ts` |
 | web | "luca's edit" label next to the community instance label | `web/src/components/save/Omnibox.svelte` |
-| ci | Deployment workflow for this fork's own instance | `.github/workflows/deploy.yml` |
 
 ## 1. Optional yt-dlp backend for YouTube
 
@@ -23,7 +22,8 @@ YouTube now rejects media requests (HTTP 403) from the innertube clients that co
 
 - A new helper, `api/src/processing/helpers/youtube-ytdlp.js`, resolves YouTube media links through yt-dlp and returns them in the same shape as the built-in YouTube service.
 - When the `YTDLP_PATH` environment variable is set, `api/src/processing/services/youtube.js` hands the request to this helper. When it is not set, the upstream behavior is unchanged.
-- `YTDLP_PATH` is read in `api/src/core/env.js` and documented in `docs/api-env-variables.md`.
+- `api/src/stream/manage.js` routes YouTube media downloads through `YTDLP_PROXY` when it is set (see below).
+- The new variables are read and validated in `api/src/core/env.js` and documented in `docs/api-env-variables.md`.
 
 ### Behavior
 
@@ -37,19 +37,33 @@ YouTube now rejects media requests (HTTP 403) from the innertube clients that co
 - yt-dlp is started without a shell and with `--ignore-config`, so a local yt-dlp configuration cannot change cobalt's behavior. The Node.js runtime that runs cobalt is passed to yt-dlp for solving YouTube's JavaScript challenges.
 - yt-dlp errors are mapped to existing cobalt error codes: private, age restricted, region locked, unavailable, live, and bot check.
 
-### Limitations
-
-- The `youtubeHLS` request option is ignored in this mode.
-- Each request starts a yt-dlp process, which adds a few seconds before the download begins.
-- yt-dlp has to be updated regularly to keep working as YouTube changes.
-
 ### Configuration
 
 ```
 YTDLP_PATH=/usr/local/bin/yt-dlp
 ```
 
-The value must point to a yt-dlp executable that the cobalt process is allowed to run.
+The value must point to a yt-dlp executable that the cobalt process is allowed to run. This is all that is needed when cobalt runs on a home connection.
+
+### Hosting on a server
+
+YouTube often blocks the IP addresses of VPS and datacenter providers with a bot check ("Sign in to confirm you're not a bot"), regardless of the client used. When that happens, two optional settings can help. Neither is needed for instances running on a home connection.
+
+| Variable | Purpose |
+|:---------|:--------|
+| `YTDLP_COOKIES` | Path to a Netscape-format cookies file passed to yt-dlp. Use cookies from a separate account, because YouTube may flag accounts used this way. yt-dlp updates the file after each request, so it must be writable by cobalt. |
+| `YTDLP_PROXY` | HTTP or HTTPS proxy for YouTube, for example a residential proxy. Both yt-dlp and cobalt's YouTube media downloads use it, because YouTube media links only work from the IP address that requested them. Other services are not affected. Credentials in the URL are passed to yt-dlp through its environment, so they do not appear in the process list. SOCKS proxies are not supported. |
+
+```
+YTDLP_COOKIES=/path/to/youtube-cookies.txt
+YTDLP_PROXY=http://user:password@proxy.example:3128
+```
+
+### Limitations
+
+- The `youtubeHLS` request option is ignored in this mode.
+- Each request starts a yt-dlp process, which adds a few seconds before the download begins.
+- yt-dlp has to be updated regularly to keep working as YouTube changes.
 
 ## 2. libav.js dev server fix on Windows
 
@@ -60,18 +74,6 @@ The fix passes `windowsPathsNoEscape: true` to `glob`. Production builds were no
 ## 3. Fork label
 
 In `web/src/components/save/Omnibox.svelte`, the "community instance" label is kept and followed by "luca's edit", which links to this repository.
-
-## 4. Deployment workflow
-
-`.github/workflows/deploy.yml` deploys this fork's instance on every push to `main`. It connects to the server over SSH and runs a fixed deploy command. The SSH key used by the workflow is restricted on the server to that single command.
-
-The workflow only runs in `1sythe/cobalt` and needs these repository secrets:
-
-| Secret | Content |
-|:-------|:--------|
-| `DEPLOY_SSH_KEY` | Private key of the deploy user |
-| `DEPLOY_HOST` | Address of the server |
-| `DEPLOY_KNOWN_HOSTS` | Known hosts entry for the server |
 
 ## Keeping up with upstream
 
