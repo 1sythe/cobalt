@@ -7,7 +7,9 @@ This repository is a fork of [imputnet/cobalt](https://github.com/imputnet/cobal
 | Area | Change | Files |
 |:-----|:-------|:------|
 | api | Optional yt-dlp backend for YouTube, with cookie and proxy options for server hosting | `api/src/processing/helpers/youtube-ytdlp.js`, `api/src/processing/services/youtube.js`, `api/src/stream/manage.js`, `api/src/core/env.js`, `docs/api-env-variables.md` |
+| relay | YouTube relay: users can route their own YouTube downloads through their own connection | `relay/`, `api/src/relay/hub.js`, `api/src/core/api.js`, `api/src/processing/schema.js`, `api/src/processing/match.js`, `web/src/components/settings/YoutubeRelay.svelte`, `.github/workflows/relay-release.yml` |
 | web | Fix for serving libav.js files from the dev server on Windows | `web/vite.config.ts` |
+| web | Fix for an import cycle that broke pages loading server info first | `web/src/lib/state/server-info.ts` |
 
 ## 1. Optional yt-dlp backend for YouTube
 
@@ -64,11 +66,44 @@ YTDLP_PROXY=http://user:password@proxy.example:3128
 - Each request starts a yt-dlp process, which adds a few seconds before the download begins.
 - yt-dlp has to be updated regularly to keep working as YouTube changes.
 
-## 2. libav.js dev server fix on Windows
+## 2. YouTube relay
+
+### Background
+
+`YTDLP_COOKIES` and `YTDLP_PROXY` are instance-wide settings that the instance owner has to provide. The relay adds an option for users: each user can route their own YouTube downloads through their own internet connection by running a small app, without any setup on the instance besides enabling the feature. The user guide is in [relay/README.md](/relay/README.md).
+
+### Components
+
+- **Relay app (`relay/`):** a dependency-free Node.js app. It connects to the instance over a WebSocket, opens TCP connections to YouTube on the instance's behalf, and passes the data through. It only connects to YouTube and Google video hosts on port 443, refuses raw IP addresses, and refuses hosts that resolve to private, loopback, link-local or other non-public addresses. It connects to the exact address it checked, so DNS changes can't redirect it. The link is saved locally and the app reconnects automatically.
+- **Relay hub (`api/src/relay/hub.js`):** accepts relay connections on `/relay` when `YTDLP_RELAY=1`. It runs a local-only HTTP CONNECT proxy, where the relay code is the proxy username. yt-dlp and cobalt's YouTube media streams use this proxy, so both reach YouTube through the user's relay.
+- **Web app:** a "youtube relay" section in settings > instances, shown only when the instance supports relays. It creates the relay link, shows whether the relay is connected, and links to the download. When enabled, requests include the relay code as `youtubeRelay`.
+- **API:** the request schema accepts `youtubeRelay`, `GET /` reports `youtubeRelay: true` when relays are enabled, and `POST /relay/status` tells the web app whether a relay is connected. New errors: `youtube.relay.offline` and `youtube.relay.disabled`.
+- **Release workflow (`.github/workflows/relay-release.yml`):** pushing a `relay-v*` tag builds standalone executables for Windows, macOS and Linux with Bun and publishes them as a GitHub release with checksums. macOS builds get an ad-hoc signature.
+
+### Protocol
+
+Control messages are JSON text frames, and data is sent in binary frames that start with a 4-byte stream ID.
+
+1. The relay connects and sends `hello` with the protocol version and its code. The code is never part of the URL, so it stays out of reverse proxy logs. The hub answers with `ready`, or with an error such as `duplicate` when the code is already connected.
+2. For each connection, the hub sends `open` with the host and port. The relay checks it against its policy and answers with `opened` or `refused`.
+3. Each side may have up to 1 MiB of unacknowledged data per stream in flight. The receiver returns `credit` once the data has been written to its local socket, so a slow consumer slows the sender down instead of filling memory.
+4. Either side ends a stream with `close`.
+
+### Behavior
+
+- Only YouTube requests that carry a relay code use a relay. Other users and other services are not affected.
+- If the relay disconnects, requests fail with `youtube.relay.offline` instead of falling back to the server's own IP address.
+- The hub limits the number of relays (64) and streams per relay (32), drops relays that stop answering pings, and refuses a second relay with a code that is already connected.
+
+## 3. libav.js dev server fix on Windows
 
 During development, `web/vite.config.ts` serves the libav.js files under `/_libav/` and finds them with `glob`. The search pattern was built with `path.join`, which uses backslashes on Windows. `glob` treats backslashes as escape characters, so no file matched and every request returned 404. On-device processing then failed with "couldn't probe this file, it may be unsupported or corrupted", even though the downloaded files were valid.
 
 The fix passes `windowsPathsNoEscape: true` to `glob`. Production builds were not affected, because they copy the files without `glob`.
+
+## 4. Server info import cycle fix
+
+`web/src/lib/state/server-info.ts` imported `web/src/lib/api/server-info.ts` only for a type, but as a regular import. That module imports `web/src/lib/state/turnstile.ts`, which imports the server info state again. When a page loaded the server info state first, the turnstile state read it before it was initialized and the page failed to render. The import is now type-only, which removes the cycle at runtime.
 
 ## Keeping up with upstream
 
