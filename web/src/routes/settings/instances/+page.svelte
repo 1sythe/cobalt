@@ -4,6 +4,7 @@
     import { t } from "$lib/i18n/translations";
 
     import SettingsInput from "$components/settings/SettingsInput.svelte";
+    import YoutubeRelay from "$components/settings/YoutubeRelay.svelte";
     import SettingsToggle from "$components/buttons/SettingsToggle.svelte";
     import SettingsCategory from "$components/settings/SettingsCategory.svelte";
 </script>
@@ -58,6 +59,8 @@
         {$t("settings.processing.access_key.description")}
     </div>
 </SettingsCategory>
+
+<YoutubeRelay />
 
 <style>
     .category-inside-group {

@@ -100,7 +100,8 @@ export type CobaltServerInfo = {
         url: string,
         startTime: string,
         turnstileSitekey?: string,
-        services: string[]
+        services: string[],
+        youtubeRelay?: boolean,
     },
     git: {
         branch: string,
@@ -113,7 +114,7 @@ export type CobaltServerInfo = {
 // this allows for extra properties, which is not ideal,
 // but i couldn't figure out how to make a strict partial :(
 export type CobaltSaveRequestBody =
-    { url: string } & Partial<Omit<CobaltSettings['save'], 'savingMethod'>>;
+    { url: string, youtubeRelay?: string } & Partial<Omit<CobaltSettings['save'], 'savingMethod'>>;
 
 export type CobaltSessionResponse = CobaltSession | CobaltErrorResponse;
 export type CobaltServerInfoResponse = CobaltServerInfo | CobaltErrorResponse;

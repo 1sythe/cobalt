@@ -78,6 +78,14 @@ const request = async (requestBody: CobaltSaveRequestBody, justRetried = false) 
         } as CobaltErrorResponse;
     }
 
+    // only sent to instances that support relays, others would reject the unknown field
+    const processing = get(settings).processing;
+    if (getCachedInfo.info.cobalt.youtubeRelay
+        && processing.enableYoutubeRelay
+        && processing.youtubeRelayCode) {
+        requestBody = { ...requestBody, youtubeRelay: processing.youtubeRelayCode };
+    }
+
     const api = currentApiURL();
     const authorization = await getAuthorization();
 

@@ -142,6 +142,15 @@
     "processing.custom_instance.input.alt_text": "custom instance domain",
     "processing.access_key.input.alt_text": "u-u-i-d access key",
 
+    "processing.youtube_relay": "youtube relay",
+    "processing.youtube_relay.title": "route youtube through my relay",
+    "processing.youtube_relay.description": "if youtube blocks this instance, your youtube downloads can go through your own internet connection instead. download the relay app, run it on a computer you own, and paste your relay link into it. the app has to stay open while you download, and it only ever connects to youtube.\n\nyour relay link works like a password, so don't share it. if you create a new link, paste it into the relay app again.",
+    "processing.youtube_relay.link": "relay link",
+    "processing.youtube_relay.connected": "relay connected",
+    "processing.youtube_relay.not_connected": "relay not connected",
+    "processing.youtube_relay.download": "download the relay app",
+    "processing.youtube_relay.new_link": "create a new link",
+
     "advanced.settings_data": "settings data",
     "advanced.local_storage": "local storage",
 

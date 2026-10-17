@@ -50,6 +50,8 @@ const defaultSettings: CobaltSettings = {
         enableCustomInstances: false,
         enableCustomApiKey: false,
         seenCustomWarning: false,
+        enableYoutubeRelay: false,
+        youtubeRelayCode: "",
     }
 }
 
