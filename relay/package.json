@@ -1,0 +1,17 @@
+{
+    "name": "cobalt-relay",
+    "description": "routes youtube traffic for a cobalt instance through your own internet connection",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "bin": {
+        "cobalt-relay": "src/index.js"
+    },
+    "scripts": {
+        "start": "node src/index.js"
+    },
+    "engines": {
+        "node": ">=22.4"
+    },
+    "license": "AGPL-3.0"
+}
