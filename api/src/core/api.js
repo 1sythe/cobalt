@@ -19,6 +19,7 @@ import { friendlyServiceName } from "../processing/service-alias.js";
 import { verifyStream } from "../stream/manage.js";
 import { createResponse, normalizeRequest, getIP } from "../processing/request.js";
 import { setupTunnelHandler } from "./itunnel.js";
+import { setupRelay, isRelayConnected } from "../relay/hub.js";
 
 import * as APIKeys from "../security/api-keys.js";
 import * as Cookies from "../processing/cookie/manager.js";
@@ -58,6 +59,7 @@ export const runAPI = async (express, app, __dirname, isPrimary = true) => {
                 services: [...env.enabledServices].map(e => {
                     return friendlyServiceName(e);
                 }),
+                youtubeRelay: env.ytdlpRelay || undefined,
             },
             git,
         });
@@ -94,6 +96,16 @@ export const runAPI = async (express, app, __dirname, isPrimary = true) => {
         legacyHeaders: false,
         keyGenerator: req => req.rateLimitKey || keyGenerator(req),
         store: await createStore('api'),
+        handler: handleRateExceeded
+    });
+
+    const relayStatusLimiter = rateLimit({
+        windowMs: 60 * 1000,
+        limit: 30,
+        standardHeaders: 'draft-6',
+        legacyHeaders: false,
+        keyGenerator,
+        store: await createStore('relay'),
         handler: handleRateExceeded
     });
 
@@ -233,6 +245,14 @@ export const runAPI = async (express, app, __dirname, isPrimary = true) => {
         }
     });
 
+    // lets the web app show whether the user's youtube relay is connected
+    app.post('/relay/status', relayStatusLimiter, (req, res) => {
+        const code = String(req.body?.code ?? "");
+        res.json({
+            connected: env.ytdlpRelay ? isRelayConnected(code) : false,
+        });
+    });
+
     app.post('/', async (req, res) => {
         const request = req.body;
 
@@ -349,7 +369,13 @@ export const runAPI = async (express, app, __dirname, isPrimary = true) => {
         );
     });
 
-    http.createServer(app).listen({
+    const server = http.createServer(app);
+
+    if (env.ytdlpRelay) {
+        setupRelay(server);
+    }
+
+    server.listen({
         port: env.apiPort,
         host: env.listenAddress,
         reusePort: env.instanceCount > 1 || undefined

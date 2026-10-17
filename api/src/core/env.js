@@ -125,6 +125,7 @@ export const loadEnvs = (env = process.env) => {
         ytdlpPath: env.YTDLP_PATH,
         ytdlpCookies: env.YTDLP_COOKIES,
         ytdlpProxy: env.YTDLP_PROXY,
+        ytdlpRelay: env.YTDLP_RELAY === "1",
 
         // "never" | "session" | "always"
         forceLocalProcessing: env.FORCE_LOCAL_PROCESSING ?? "never",
@@ -185,6 +186,15 @@ export const validateEnvs = async (env) => {
         if (!["http:", "https:"].includes(protocol)) {
             throw new Error("YTDLP_PROXY must be an http:// or https:// proxy url");
         }
+    }
+
+    if (env.ytdlpRelay && !env.ytdlpPath) {
+        throw new Error("YTDLP_RELAY requires YTDLP_PATH to be set");
+    }
+
+    // relays connect to a single process, so requests must be handled by the same one
+    if (env.ytdlpRelay && env.instanceCount > 1) {
+        throw new Error("YTDLP_RELAY is not supported when API_INSTANCE_COUNT is >= 2");
     }
 
     if (env.externalProxy && env.freebindCIDR) {

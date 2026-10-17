@@ -3,6 +3,7 @@ import { execFile } from "node:child_process";
 
 import { env } from "../../config.js";
 import { Yellow } from "../../misc/console-text.js";
+import { getRelayProxyURL } from "../../relay/hub.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -102,13 +103,13 @@ const parseError = (stderr = "") => {
     return "fetch.fail";
 }
 
-const runYtdlp = async (args) => {
+const runYtdlp = async (args, proxy) => {
     const childEnv = { ...process.env };
 
     // passed through the environment instead of --proxy,
     // so that proxy credentials don't show up in the process list
-    if (env.ytdlpProxy) {
-        childEnv.HTTP_PROXY = childEnv.HTTPS_PROXY = env.ytdlpProxy;
+    if (proxy) {
+        childEnv.HTTP_PROXY = childEnv.HTTPS_PROXY = proxy;
         delete childEnv.NO_PROXY;
     }
 
@@ -125,6 +126,19 @@ const runYtdlp = async (args) => {
 export async function getYtdlpMedia(o) {
     const codec = o.codec || "h264";
     const quality = o.quality === "max" ? 9000 : Number(o.quality);
+
+    // a relay routes this request through the user's own connection
+    let proxy = env.ytdlpProxy;
+    if (o.relay) {
+        if (!env.ytdlpRelay) {
+            return { error: "youtube.relay.disabled" };
+        }
+
+        proxy = getRelayProxyURL(o.relay);
+        if (!proxy) {
+            return { error: "youtube.relay.offline" };
+        }
+    }
 
     const args = [
         "--ignore-config",
@@ -145,7 +159,7 @@ export async function getYtdlpMedia(o) {
 
     let info, stderr;
     try {
-        ({ info, stderr } = await runYtdlp(args));
+        ({ info, stderr } = await runYtdlp(args, proxy));
     } catch (e) {
         if (e?.code === "ENOENT") {
             console.error(`${Yellow('[!]')} yt-dlp wasn't found at YTDLP_PATH (${env.ytdlpPath})`);

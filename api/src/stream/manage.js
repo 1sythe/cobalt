@@ -11,6 +11,7 @@ import { closeRequest } from "./shared.js";
 import { decryptStream, encryptStream } from "../misc/crypto.js";
 import { hashHmac } from "../security/secrets.js";
 import { zip } from "../misc/utils.js";
+import { getRelayDispatcher } from "../relay/hub.js";
 
 // optional dependency
 const freebind = env.freebindCIDR && await import('freebind').catch(() => {});
@@ -22,9 +23,18 @@ const internalStreamCache = new Map();
 let youtubeProxy;
 
 // links resolved by yt-dlp only work from the ip that requested them,
-// so youtube media has to be fetched through the same proxy as yt-dlp
-const getYoutubeProxyDispatcher = (service) => {
-    if (!env.ytdlpPath || !env.ytdlpProxy || service !== "youtube") {
+// so youtube media has to be fetched through the same relay or proxy as yt-dlp
+const getYoutubeDispatcher = (obj) => {
+    if (!env.ytdlpPath || obj.service !== "youtube") {
+        return;
+    }
+
+    const relay = obj.originalRequest?.relay;
+    if (relay && env.ytdlpRelay) {
+        return getRelayDispatcher(relay);
+    }
+
+    if (!env.ytdlpProxy) {
         return;
     }
 
@@ -164,7 +174,7 @@ export function createInternalStream(url, obj = {}, isSubtitles) {
         dispatcher = freebind?.dispatcherFromIP(obj.requestIP, { strict: false })
     }
 
-    dispatcher ??= getYoutubeProxyDispatcher(obj.service);
+    dispatcher ??= getYoutubeDispatcher(obj);
 
     const streamID = nanoid();
     let controller = obj.controller;

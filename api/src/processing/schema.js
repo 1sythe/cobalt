@@ -60,5 +60,11 @@ export const apiSchema = z.object({
 
     youtubeHLS: z.boolean().default(false),
     youtubeBetterAudio: z.boolean().default(false),
+
+    youtubeRelay: z.string()
+                   .min(22)
+                   .max(64)
+                   .regex(/^[0-9a-zA-Z_-]+$/)
+                   .optional(),
 })
 .strict();

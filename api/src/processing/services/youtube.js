@@ -193,6 +193,11 @@ export default async function (o) {
         return getYtdlpMedia(o);
     }
 
+    // relays only work with the yt-dlp backend
+    if (o.relay) {
+        return { error: "youtube.relay.disabled" };
+    }
+
     const quality = o.quality === "max" ? 9000 : Number(o.quality);
 
     let useHLS = o.youtubeHLS;

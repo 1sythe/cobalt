@@ -72,6 +72,7 @@ this document is not final and will expand over time. feel free to improve it!
 | YTDLP_PATH                       | `/usr/local/bin/yt-dlp`  |
 | YTDLP_COOKIES                    | `/cookies.txt`           |
 | YTDLP_PROXY                      | `http://10.0.0.1:3128`   |
+| YTDLP_RELAY                      | `1`                      |
 
 [*view details*](#service-specific)
 
@@ -311,3 +312,10 @@ http or https proxy that is used for youtube when `YTDLP_PATH` is set. both yt-d
 like `YTDLP_COOKIES`, this is only needed when youtube blocks the instance's ip address. credentials can be included in the url (`http://user:password@host:port`). they are passed to yt-dlp through its environment, not its command line. socks proxies are not supported.
 
 the value is a URL.
+
+### YTDLP_RELAY
+when set to `1`, users can route their own youtube downloads through their own internet connection with the [cobalt relay](/relay/README.md) app. requires `YTDLP_PATH`, and is not supported when `API_INSTANCE_COUNT` is 2 or more.
+
+relays connect to the api with a websocket on `/relay`, so a reverse proxy in front of cobalt has to forward websocket upgrades. requests from users with an active relay link use their relay instead of `YTDLP_PROXY`.
+
+the value is a number, either `0` or `1`.
