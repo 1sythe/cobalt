@@ -8,7 +8,6 @@ This repository is a fork of [imputnet/cobalt](https://github.com/imputnet/cobal
 |:-----|:-------|:------|
 | api | Optional yt-dlp backend for YouTube, with cookie and proxy options for server hosting | `api/src/processing/helpers/youtube-ytdlp.js`, `api/src/processing/services/youtube.js`, `api/src/stream/manage.js`, `api/src/core/env.js`, `docs/api-env-variables.md` |
 | web | Fix for serving libav.js files from the dev server on Windows | `web/vite.config.ts` |
-| web | "luca's edit" label next to the community instance label | `web/src/components/save/Omnibox.svelte` |
 
 ## 1. Optional yt-dlp backend for YouTube
 
@@ -70,10 +69,6 @@ YTDLP_PROXY=http://user:password@proxy.example:3128
 During development, `web/vite.config.ts` serves the libav.js files under `/_libav/` and finds them with `glob`. The search pattern was built with `path.join`, which uses backslashes on Windows. `glob` treats backslashes as escape characters, so no file matched and every request returned 404. On-device processing then failed with "couldn't probe this file, it may be unsupported or corrupted", even though the downloaded files were valid.
 
 The fix passes `windowsPathsNoEscape: true` to `glob`. Production builds were not affected, because they copy the files without `glob`.
-
-## 3. Fork label
-
-In `web/src/components/save/Omnibox.svelte`, the "community instance" label is kept and followed by "luca's edit", which links to this repository.
 
 ## Keeping up with upstream
 
