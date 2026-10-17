@@ -25,6 +25,10 @@
     <br/>
 </div>
 
+> [!NOTE]
+> this is luca's fork of cobalt. it adds an optional yt-dlp backend for youtube and a few fixes on top of upstream.
+> all changes are documented in [fork changes](docs/fork-changes.md).
+
 cobalt is a media downloader that doesn't piss you off. it's friendly, efficient, and doesn't have ads, trackers, paywalls or other nonsense.
 
 paste the link, get the file, move on. that simple, just how it should be.
