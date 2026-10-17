@@ -21,7 +21,11 @@ const exposeLibAV: PluginOption = (() => {
                 const filename = basename(req.url).split('?')[0];
                 if (!filename) return next();
 
-                const [file] = await glob(join(IMPUT_MODULE_DIR, '/**/dist/', filename));
+                // join() uses backslashes on windows, which glob would treat as escapes
+                const [file] = await glob(
+                    join(IMPUT_MODULE_DIR, '/**/dist/', filename),
+                    { windowsPathsNoEscape: true }
+                );
                 if (!file) return next();
 
                 const fileType = mime.getType(filename);
