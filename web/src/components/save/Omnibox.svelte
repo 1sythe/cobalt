@@ -150,6 +150,15 @@
 {#if env.DEFAULT_API !== officialApiURL}
     <div id="instance-label">
         {$t("save.label.community_instance")}
+        <span id="instance-label-separator" aria-hidden="true">·</span>
+        <a
+            id="instance-label-fork"
+            href="https://github.com/1sythe/cobalt"
+            target="_blank"
+            rel="noopener noreferrer"
+        >
+            luca's edit
+        </a>
     </div>
 {/if}
 
@@ -357,6 +366,19 @@
         font-size: 13px;
         color: var(--gray);
         font-weight: 500;
+    }
+
+    #instance-label-separator {
+        margin: 0 4px;
+    }
+
+    #instance-label-fork {
+        color: var(--gray);
+        text-decoration: none;
+    }
+
+    #instance-label-fork:hover {
+        text-decoration: underline;
     }
 
     @media screen and (max-width: 440px) {
