@@ -7,6 +7,7 @@ import { Innertube, Platform, Session } from "youtubei.js";
 import { env } from "../../config.js";
 import { getCookie } from "../cookie/manager.js";
 import { getYouTubeSession } from "../helpers/youtube-session.js";
+import { getYtdlpMedia } from "../helpers/youtube-ytdlp.js";
 
 // https://github.com/LuanRT/YouTube.js/pull/1052
 Platform.shim.eval = async (data) => {
@@ -188,6 +189,10 @@ const getSubtitles = async (info, dispatcher, subtitleLang) => {
 }
 
 export default async function (o) {
+    if (env.ytdlpPath) {
+        return getYtdlpMedia(o);
+    }
+
     const quality = o.quality === "max" ? 9000 : Number(o.quality);
 
     let useHLS = o.youtubeHLS;

@@ -69,6 +69,7 @@ this document is not final and will expand over time. feel free to improve it!
 | YOUTUBE_ALLOW_BETTER_AUDIO       | `1`                      |
 | ENABLE_DEPRECATED_YOUTUBE_HLS    | `key`                    |
 | YOUTUBE_PLAYER_ID                | `abcdefff`               |
+| YTDLP_PATH                       | `/usr/local/bin/yt-dlp`  |
 
 [*view details*](#service-specific)
 
@@ -289,3 +290,8 @@ the value is a string: `never` (default), `key`, or `always`:
 - when the var is not defined or set to `never`, `youtubeHLS` in POST requests will be ignored.
 - when set to `key`, only requests from api-key clients will be able to use `youtubeHLS` in POST requests.
 - when set to `always`, all requests will be able to use `youtubeHLS` in POST requests.
+
+### YTDLP_PATH
+path to a [yt-dlp](https://github.com/yt-dlp/yt-dlp) executable. when defined, cobalt uses yt-dlp to get youtube media links instead of its built-in innertube client. node.js (the one running cobalt) is passed to yt-dlp for solving youtube's javascript challenges. `youtubeHLS` is ignored in this mode.
+
+the value is a path.
