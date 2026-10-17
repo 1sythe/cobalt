@@ -1,0 +1,80 @@
+name: Release cobalt relay
+
+on:
+  push:
+    tags:
+      - "relay-v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: build (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - { target: windows-x64, os: ubuntu-latest, file: cobalt-relay-windows-x64.exe }
+          - { target: linux-x64, os: ubuntu-latest, file: cobalt-relay-linux-x64 }
+          - { target: linux-arm64, os: ubuntu-latest, file: cobalt-relay-linux-arm64 }
+          - { target: darwin-x64, os: macos-latest, file: cobalt-relay-macos-x64 }
+          - { target: darwin-arm64, os: macos-latest, file: cobalt-relay-macos-arm64 }
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.3
+
+      - name: Build executable
+        run: >-
+          bun build relay/src/index.js --compile --minify
+          --target=bun-${{ matrix.target }}
+          --outfile dist/${{ matrix.file }}
+
+      # unsigned binaries are killed on apple silicon, an ad-hoc signature is enough to run
+      - name: Sign macOS executable
+        if: runner.os == 'macOS'
+        run: codesign --force --sign - dist/${{ matrix.file }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.file }}
+          path: dist/${{ matrix.file }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check that the tag matches the relay version
+        run: |
+          set -euo pipefail
+          TAG_VERSION="${GITHUB_REF_NAME#relay-v}"
+          PACKAGE_VERSION=$(node -p "require('./relay/package.json').version")
+          if [ "$TAG_VERSION" != "$PACKAGE_VERSION" ]; then
+            echo "tag $GITHUB_REF_NAME doesn't match relay/package.json version $PACKAGE_VERSION"
+            exit 1
+          fi
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Create checksums
+        run: cd dist && sha256sum * > SHA256SUMS
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          NOTES="Download the file for your system, run it, and paste your relay link from cobalt settings > instances > youtube relay.
+
+          Setup and platform notes: https://github.com/${GITHUB_REPOSITORY}/blob/main/relay/README.md"
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --title "cobalt relay ${GITHUB_REF_NAME#relay-v}" \
+            --notes "$NOTES"
